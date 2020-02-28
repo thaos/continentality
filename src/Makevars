@@ -1,0 +1,10 @@
+C_OBJS = continentalityc.o
+FT_OBJS = continentalityf.o
+ 
+all:
+	@$(MAKE) $(SHLIB)
+	@rm -f *.mod *.o
+ 
+$(SHLIB): $(FT_OBJS) $(C_OBJS)
+ 
+continentalityc.o: continentalityf.o
