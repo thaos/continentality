@@ -18,7 +18,7 @@ contains
     ! Inputs/Outputs
     integer(kind = c_int), intent(in), value ::  NX, NY, NBmois   
     real(kind = c_double), intent(in), value :: X1, X2, Y1, Y2, dlon, dlat
-    real(kind = c_double), intent(in), dimension(NX,NY) ::  mask
+    integer(kind = c_int), intent(in), dimension(NX,NY) ::  mask
     real(kind = c_double), intent(in), dimension(NX,NY,NBmois) ::  Udsc, Vdsc 
     real(kind = c_double), intent(in), dimension(NX) :: lon                          ! Vecteur longitudes CRU
     real(kind = c_double), intent(in), dimension(NY) :: lat                          ! Vecteur latitudes CRU
@@ -59,6 +59,12 @@ contains
     print*, 'Definition de la fenetre de calcul (Valeurs / indices) :'
     print*,'NX, NY, NBmois :', NX, NY, NBmois
     print*,'X1, X2, Y1, Y2 :', X1, X2, Y1, Y2
+    print*,'Udsc[1], Udsc[2], Udsc[3] :', Udsc(1, 1, 1), Udsc(2, 1, 1), Udsc(3, 1, 1)
+    print*,'Udsc[10, 9, 5]:', Udsc(10, 9, 5)
+    print*,'Vdsc[1], Vdsc[2], Vdsc[3] :', Vdsc(1, 1, 1), Vdsc(2, 1, 1), Vdsc(3, 1, 1)
+    print*,'Vdsc[10, 9]:', Vdsc(10, 9, 5)
+    print*,'mask[1], mask[2], mask[3] :', mask(1, 1), mask(2, 1), mask(3, 1)
+    print*,'mask[10, 9]:', mask(10,9)
     print*,'dlon, dlat:', dlon, dlat 
     print*,'lon(1)', lon(1) 
     NX1=abs(floor((X1-lon(1)-dlon/2.0)/dlon))
@@ -66,11 +72,24 @@ contains
     NY1=abs(floor((Y1-lat(1)-dlat/2.0)/dlat))
     NY2=abs(ceiling((Y2-lat(1)-dlat/2.0)/dlat))
 
+    print*,'lon(nx1) : ',lon(nx1)
+    print*,'lon(nx2) : ',lon(nx2)
+    print*,'lat(ny1) : ',lat(ny1)
+    print*,'lat(ny2) : ',lat(ny2)
+
+    PRINT*, 'LON 1 : ',X1,' / indice : ',NX1
+    PRINT*, 'LON 2 : ',X2,' / indice : ',NX2
+    PRINT*, 'LAT 1 : ',Y1,' / indice : ',NY1
+    PRINT*, 'LAT 2 : ',Y2,' / indice : ',NY2
+
     deltaX = Rearth * cos(lat(:)*RPI/180.0) * dlon * RPI/180.0
     deltaY = Rearth * dlat * RPI/180.0
 
     print*,'entree dans CALCUL_PREDICTORS'
     zerotab(:,:,:)=0.
+    Aco(:,:,:)=0.
+    Dco(:,:)=0.
+    azWinddist(:,:,:)=0.
 
     do n=1,NBmois
       mask3D(:,:,n)=mask(:,:)
@@ -141,6 +160,9 @@ contains
         imax(i,j)=min(NX,i+nbrptsx(j))
         jmin(i,j)=max(1,j-nbrptsy)
         jmax(i,j)=min(NY,j+nbrptsy)
+        ! print*,'imin, imax, jmin, jmax', imin(i,j), imax(i,j), jmin(i,j), jmax(i,j)
+        jmin(i,j)=max(1,j-nbrptsy)
+        jmax(i,j)=min(NY,j+nbrptsy)
         ! masque zone d'investigation pour chaque point de grille :
         invest(:,:)=.false.
         invest(imin(i,j):imax(i,j),jmin(i,j):jmax(i,j))=.true.
@@ -179,14 +201,15 @@ contains
           azWinddist(:,:,:)=max(zerotab(:,:,:),azWinddist(:,:,:))
         endwhere
 
-        if (mask(i,j).eq.0) then
+        if (mask(i,j)==0) then
           distpts(i,j)=0.
           azWinddist(i,j,:)=0.
         endif 
 
         ! Dco est minval de distpts sur zone d'investigation et points mer (mask=0)
         !3D        Dco(i,j,1)=minval(distpts(:,:), mask=(invest(:,:)==.true..and.mask(:,:)==0)) / factDco
-        Dco(i,j)=minval(distpts(:,:), mask=(invest(:,:).eqv..true..and.mask(:,:)==0)) / factDco
+        Dco(i,j)=minval(distpts(:,:), mask=((invest(:,:).eqv..true.).and.(mask(:,:).eq.0))) / factDco
+        print*,"Dco(", i,",",j,") = ", Dco(i,j)  
         ! Dco est compris entre 0 et 100
         where (Dco(:,:).GE.100..and.invest(:,:))
           Dco(:,:)=100.
@@ -194,11 +217,13 @@ contains
 
         ! Aco : valeur mini de azWinddist dans zone investigation et si océan
         do n=1,NBmois
-          Aco(i,j,n)=minval(azWinddist(:,:,n), mask=(invest3D(:,:,n).eqv..true..and.mask3D(:,:,n)==0))
+          Aco(i,j,n)=minval(azWinddist(:,:,n), mask=((invest3D(:,:,n).eqv..true.).and.(mask3D(:,:,n).eq.0)))
         enddo
       enddo
     enddo
     print*,'FIN DU CALCUL DES PREDICTEURS'
+    PRINT*,'ACO (min/max) :',MINVAL(Aco),MAXVAL(Aco)
+    PRINT*,'DCO (min/max) :',MINVAL(Dco),MAXVAL(Dco)
 
   end subroutine compute_continentality_f
 

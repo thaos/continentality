@@ -18,7 +18,7 @@ void F77_NAME(compute_continentality_f)(
     double *lat,
     double *Udsc,
     double *Vdsc,
-    double *mask,
+    int *mask,
     double *Aco,
     double *Dco
 );
@@ -61,11 +61,11 @@ extern SEXP c_compute_continentality_f(
     REAL(lat),
     REAL(Udsc),
     REAL(Vdsc),
-    REAL(mask),
+    INTEGER(mask),
     REAL(Aco),
     REAL(Dco)
   );
-  SET_VECTOR_ELT(out, 1, Aco);
+  SET_VECTOR_ELT(out, 0, Aco);
   SET_VECTOR_ELT(out, 1, Dco);
   UNPROTECT(3);
   return(out);
