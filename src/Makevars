@@ -1,3 +1,8 @@
+# Your Fotran compiler should be gfortran
+# if not put in ~/.R/Makevars
+# FC = gfortran
+
+
 C_OBJS = continentalityc.o
 FT_OBJS = continentalityf.o
  

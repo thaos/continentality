@@ -149,6 +149,7 @@ contains
     ! Boucle pour tous les points de la grille
     ! ----------------------------------------
     do j=NY1,NY2
+      write(*, fmt="(a)", advance="no") "."
       do i=NX1,NX2
         ! nouvelle version du code
         ! On definie la distance de recherche : flpath
@@ -209,7 +210,7 @@ contains
         ! Dco est minval de distpts sur zone d'investigation et points mer (mask=0)
         !3D        Dco(i,j,1)=minval(distpts(:,:), mask=(invest(:,:)==.true..and.mask(:,:)==0)) / factDco
         Dco(i,j)=minval(distpts(:,:), mask=((invest(:,:).eqv..true.).and.(mask(:,:).eq.0))) / factDco
-        print*,"Dco(", i,",",j,") = ", Dco(i,j)  
+        ! print*,"Dco(", i,",",j,") = ", Dco(i,j)  
         ! Dco est compris entre 0 et 100
         where (Dco(:,:).GE.100..and.invest(:,:))
           Dco(:,:)=100.
