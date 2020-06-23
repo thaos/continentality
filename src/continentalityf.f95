@@ -162,13 +162,19 @@ contains
 
     ! Boucle pour tous les points de la grille
     ! ----------------------------------------
-    !$OMP PARALLEL PRIVATE(rang,nb_taches)
+    !$OMP PARALLEL PRIVATE(rang,nb_taches,i_min,i_max,azimuth,distpts,azwind,azWinddist,invest)
     !$ rang=OMP_GET_THREAD_NUM()
     !$ nb_taches=OMP_GET_NUM_THREADS()
+    !$ i_min=NY1
+    !$ i_max=NY2
     !$OMP DO SCHEDULE(STATIC,NY/nb_taches)
     do j=NY1,NY2
       write(*, fmt="(a)", advance="no") "."
       do i=NX1,NX2
+        azimuth(:,:)=0.
+        distpts(:,:)=0.
+        azwind(:,:,:)=0.
+        azWinddist(:,:,:)=0.
         ! nouvelle version du code
         ! On definie la distance de recherche : flpath
         ! calcul de la distance des points par rapport au point etudié
@@ -179,16 +185,10 @@ contains
         imax(i,j)=min(NX,i+nbrptsx(j))
         jmin(i,j)=max(1,j-nbrptsy)
         jmax(i,j)=min(NY,j+nbrptsy)
-        ! print*,'imin, imax, jmin, jmax', imin(i,j), imax(i,j), jmin(i,j), jmax(i,j)
-        jmin(i,j)=max(1,j-nbrptsy)
-        jmax(i,j)=min(NY,j+nbrptsy)
         ! masque zone d'investigation pour chaque point de grille :
         invest(:,:)=.false.
         invest(imin(i,j):imax(i,j),jmin(i,j):jmax(i,j))=.true.
         ! calcul du masque invest sur 3D:
-        do n=1,NBmois
-          invest3D(:,:,n)=invest(:,:)
-        enddo
 
         ! calcul des variables hors du where
         ! Azimuth entre point de ref et point cible
@@ -216,9 +216,11 @@ contains
           enddo
         enddo
 
-        where (invest3D(:,:,:))
-          azWinddist(:,:,:)=max(zerotab(:,:,:),azWinddist(:,:,:))
-        endwhere
+        do n=1,NBmois
+          where (invest(:,:))
+            azWinddist(:,:,n)=max(zerotab(:,:,n),azWinddist(:,:,n))
+          endwhere
+        enddo
 
         if (mask(i,j)==0) then
           distpts(i,j)=0.
@@ -236,7 +238,7 @@ contains
 
         ! Aco : valeur mini de azWinddist dans zone investigation et si océan
         do n=1,NBmois
-          Aco(i,j,n)=minval(azWinddist(:,:,n), mask=((invest3D(:,:,n).eqv..true.).and.(mask3D(:,:,n).eq.0)))
+          Aco(i,j,n)=minval(azWinddist(:,:,n), mask=((invest(:,:).eqv..true.).and.(mask3D(:,:,n).eq.0)))
         enddo
       enddo
     enddo
