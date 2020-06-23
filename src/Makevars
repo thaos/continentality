@@ -1,7 +1,12 @@
 # Your Fotran compiler should be gfortran
 # if not put in ~/.R/Makevars
-# FC = gfortran
+FC = gfortran
 
+
+# To compile with openMP put these options in your
+#  ~/.R/Makevars
+# PKG_FFLAGS=-fopenmp
+# PKG_LIBS=-lgomp
 
 C_OBJS = continentalityc.o
 FT_OBJS = continentalityf.o

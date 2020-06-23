@@ -1,4 +1,3 @@
-devtools::load_all()
 
 # lon = 0:50
 # lat = 0:50
@@ -23,6 +22,7 @@ devtools::load_all()
 # image(continentality$Dco)
 # image(continentality$Aco[,, 1])
 
+library(continentality)
 library(ncdf4)
 library(maps)
 world = map("world", plot = FALSE)

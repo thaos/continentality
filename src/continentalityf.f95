@@ -14,6 +14,8 @@ contains
       bind(C, name = "compute_continentality_f_")
   ! ################## !
 
+
+    !$ USE OMP_LIB
     ! Tof declar
     ! Inputs/Outputs
     integer(kind = c_int), intent(in), value ::  NX, NY, NBmois   
@@ -55,6 +57,11 @@ contains
 
     integer :: imin_invest,imax_invest,jmin_invest,jmax_invest ! zone de recherche etendue (zone d'etude + flpath)
 
+    ! variables parallelisation openMP
+    integer :: rang, nb_taches
+    logical :: paral
+    integer :: i_min, i_max
+
     ! Fenetre de calcul (pas sur toute la grille => trop long !)
     print*, 'Definition de la fenetre de calcul (Valeurs / indices) :'
     print*,'NX, NY, NBmois :', NX, NY, NBmois
@@ -84,6 +91,7 @@ contains
 
     deltaX = Rearth * cos(lat(:)*RPI/180.0) * dlon * RPI/180.0
     deltaY = Rearth * dlat * RPI/180.0
+
 
     print*,'entree dans CALCUL_PREDICTORS'
     zerotab(:,:,:)=0.
@@ -120,6 +128,12 @@ contains
     !
     !------------------------------------------------------
     print*,'flpath = ',flpath
+    !$OMP PARALLEL
+    !$ paral = OMP_IN_PARALLEL()
+    !$ print*,'flpath vaut : ',flpath ,'; paral vaut ', paral
+    !$ print *, 'Hello from process:', omp_get_thread_num()
+    !$OMP END PARALLEL
+
     do j=NY1,NY2
       nbrptsx(j)=floor(flpath/deltaX(j))+1
     enddo
@@ -148,6 +162,10 @@ contains
 
     ! Boucle pour tous les points de la grille
     ! ----------------------------------------
+    !$OMP PARALLEL PRIVATE(rang,nb_taches)
+    !$ rang=OMP_GET_THREAD_NUM()
+    !$ nb_taches=OMP_GET_NUM_THREADS()
+    !$OMP DO SCHEDULE(STATIC,NY/nb_taches)
     do j=NY1,NY2
       write(*, fmt="(a)", advance="no") "."
       do i=NX1,NX2
@@ -222,6 +240,10 @@ contains
         enddo
       enddo
     enddo
+    !$OMP END DO NOWAIT
+    !$ print*,"boucle PREDICTEURS Rang : ",rang,"; i_min :",i_min,"; i_max :",i_max
+    !$OMP END PARALLEL
+
     print*,'FIN DU CALCUL DES PREDICTEURS'
     PRINT*,'ACO (min/max) :',MINVAL(Aco),MAXVAL(Aco)
     PRINT*,'DCO (min/max) :',MINVAL(Dco),MAXVAL(Dco)
