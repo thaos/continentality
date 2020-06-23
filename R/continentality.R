@@ -49,9 +49,12 @@ compute_continentality <- function(X1, X2, Y1, Y2, lon, lat, Udsc, Vdsc, mask) {
   )
   print(str(continentality))
   print(str(Udsc))
-  Aco <- structure(continentality[[1]], dim = dim(Udsc))
+  print(str(mask))
+  Aco <- structure(continentality[[1]], dim = dim(Udsc), dimnames =
+                   dimnames(Udsc))
   #   Aco <- aperm(Aco, c(2, 1, 3))
-  Dco <- structure(continentality[[2]], dim = dim(mask))
+  Dco <- structure(continentality[[2]], dim = dim(mask), dimnames =
+                   dimnames(mask))
   #   Dco <- t(Dco) 
   return(
     list(Aco = Aco, Dco = Dco)
