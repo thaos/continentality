@@ -10,8 +10,6 @@ compute_continentality <- function(X1, X2, Y1, Y2, lon, lat, Udsc, Vdsc, mask) {
   dlat <- diff(lat)
   stopifnot(all(abs(dlat - mean(dlat)) < 1E-2))
   dlon <- mean(dlon)
-  dlon = 1/6
-  dlat = 1/6
   dlat <- mean(dlat)
   if (!is.integer(NX)) {storage.mode(NX) <- 'integer'}
   if (!is.integer(NY)) {storage.mode(NY) <- 'integer'}
@@ -27,17 +25,6 @@ compute_continentality <- function(X1, X2, Y1, Y2, lon, lat, Udsc, Vdsc, mask) {
   if (!is.double(Udsc)) {storage.mode(Udsc) <- 'double'}
   if (!is.double(Vdsc)) {storage.mode(Vdsc) <- 'double'}
   if (!is.integer(mask)) {storage.mode(mask) <- 'integer'}
-  cat(NX, " ", NY, " ", NBmois, "\n")
-  # Reformat for C-style indexing
-  #   mask <- t(mask)
-  #   Udsc <- aperm(Udsc, c(2, 1, 3))
-  #   Vdsc <- aperm(Vdsc, c(2, 1, 3))
-  cat("Udsc[1:3]", Udsc[1:3], "\n")
-  cat("Udsc[10, 9, 5]", Udsc[10, 9, 5], "\n")
-  cat("Vdsc[1:3]", Vdsc[1:3], "\n")
-  cat("Vdsc[10, 9, 5]", Vdsc[10, 9, 5], "\n")
-  cat("mask[1:3]", mask[1:3], "\n")
-  cat("mask[10, 9, 5]", mask[10, 9], "\n")
   continentality  <- .Call(
     c_compute_continentality_f,
     NX, NY, NBmois,
@@ -47,15 +34,10 @@ compute_continentality <- function(X1, X2, Y1, Y2, lon, lat, Udsc, Vdsc, mask) {
     Udsc, Vdsc,
     mask
   )
-  print(str(continentality))
-  print(str(Udsc))
-  print(str(mask))
   Aco <- structure(continentality[[1]], dim = dim(Udsc), dimnames =
                    dimnames(Udsc))
-  #   Aco <- aperm(Aco, c(2, 1, 3))
   Dco <- structure(continentality[[2]], dim = dim(mask), dimnames =
                    dimnames(mask))
-  #   Dco <- t(Dco) 
   return(
     list(Aco = Aco, Dco = Dco)
   )

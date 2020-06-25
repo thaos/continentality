@@ -41,12 +41,9 @@ extern SEXP c_compute_continentality_f(
  ){
   SEXP Aco;
   SEXP Dco;
-  printf("inside C");
   PROTECT(Aco = allocVector(REALSXP, asInteger(NX) * asInteger(NY) * asInteger(NBmois)));
   PROTECT(Dco = allocVector(REALSXP, asInteger(NX) * asInteger(NY)));
   SEXP out = PROTECT(allocVector(VECSXP, 2));
-  printf("NX %d NY %d NBmois %d", asInteger(NX), asInteger(NY), asInteger(NBmois));
-  printf("X1 %d X2 %d Y1 %d Y2 %d", asInteger(X1), asInteger(X2), asInteger(Y1), asInteger(Y2));
   F77_CALL(compute_continentality_f)(
     asInteger(NX),
     asInteger(NY),

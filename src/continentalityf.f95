@@ -35,13 +35,16 @@ contains
     integer, dimension(NY) :: nbrptsx
     logical, dimension(NX,NY) :: invest ! tableau T ou F si investigation sur coord i,j
     logical, dimension(NX,NY,NBmois) :: invest3D ! tableau T ou F si investigation sur coord i,j
-    real, dimension(NX,NY) :: distpts ! distance entre pts et cible
     real, dimension(NX,NY) :: latrad,lonrad ! lon et lat des points en radians
-    integer, dimension(nx,ny) :: imin,imax,jmin,jmax ! coord min et max d'ivestigation pour chaue point
-    real, dimension(nx,ny) :: azimuth
-    real, dimension(nx,ny,NBmois) :: adwind ! vent selon l'azimuth
-    real, dimension(nx,ny,NBmois) :: azwind ! vent selon l'azimuth
-    real, dimension(nx,ny,NBmois) :: azwinddist ! vent selon azimuth * distance entre les 2 points
+    integer :: imin,imax,jmin,jmax ! coord min et max d'ivestigation pour chaue point
+    !real, dimension(NX,NY) :: distpts ! distance entre pts et cible
+    !real, dimension(nx,ny) :: azimuth
+    !real, dimension(nx,ny,NBmois) :: azwind ! vent selon l'azimuth
+    !real, dimension(nx,ny,NBmois) :: azwinddist ! vent selon azimuth * distance entre les 2 points
+    real, dimension(NX, NY, NBmois) :: adwind
+    real, dimension(:,:), allocatable :: azimuth, distpts
+    real, dimension(:,:,:), allocatable :: azwind, azwinddist
+
     real, dimension(nx,ny,NBmois) :: zerotab    ! tableau de zero
     integer, dimension(nx,ny,NBmois) :: mask3D ! masque Terre/Mer sur variable 3D avec 12 mois
     real, dimension(NY) :: deltaX
@@ -78,6 +81,10 @@ contains
     NX2=abs(ceiling((X2-lon(1)-dlon/2.0)/dlon))
     NY1=abs(floor((Y1-lat(1)-dlat/2.0)/dlat))
     NY2=abs(ceiling((Y2-lat(1)-dlat/2.0)/dlat))
+    NX1=merge(1, NX1, NX1.lt.1)
+    NX2=merge(NX, NX2, NX2.gt.NX)
+    NY1=merge(1, NY1, NY1.lt.1)
+    NY2=merge(NY, NY2, NY2.gt.NY)
 
     print*,'lon(nx1) : ',lon(nx1)
     print*,'lon(nx2) : ',lon(nx2)
@@ -97,7 +104,6 @@ contains
     zerotab(:,:,:)=0.
     Aco(:,:,:)=0.
     Dco(:,:)=0.
-    azWinddist(:,:,:)=0.
 
     do n=1,NBmois
       mask3D(:,:,n)=mask(:,:)
@@ -162,32 +168,35 @@ contains
 
     ! Boucle pour tous les points de la grille
     ! ----------------------------------------
-    !$OMP PARALLEL PRIVATE(rang,nb_taches,i_min,i_max,azimuth,distpts,azwind,azWinddist,invest)
+    !$OMP PARALLEL PRIVATE(rang,nb_taches,i_min,i_max, imin, imax, jmin, jmax, azimuth,distpts,azwind,azWinddist,invest)
     !$ rang=OMP_GET_THREAD_NUM()
     !$ nb_taches=OMP_GET_NUM_THREADS()
     !$ i_min=NY1
     !$ i_max=NY2
-    !$OMP DO SCHEDULE(STATIC,NY/nb_taches)
+    !$OMP DO SCHEDULE(STATIC, NY/nb_taches)
     do j=NY1,NY2
       write(*, fmt="(a)", advance="no") "."
       do i=NX1,NX2
+        allocate(azimuth(NX,NY), distpts(NX,NY))
+        allocate(azwind(NX,NY,NBmois), azWinddist(NX,NY,NBmois))
         azimuth(:,:)=0.
         distpts(:,:)=0.
         azwind(:,:,:)=0.
         azWinddist(:,:,:)=0.
+
         ! nouvelle version du code
         ! On definie la distance de recherche : flpath
         ! calcul de la distance des points par rapport au point etudié
         ! calcul de l'angle par rapport au point etudié
         ! il n'y a plus de pas d'investigation, on travail à la résolution des données
         ! calcul des coordonnees des points extremes d'investigation :
-        imin(i,j)=max(1,i-nbrptsx(j))
-        imax(i,j)=min(NX,i+nbrptsx(j))
-        jmin(i,j)=max(1,j-nbrptsy)
-        jmax(i,j)=min(NY,j+nbrptsy)
+        imin=max(1,i-nbrptsx(j))
+        imax=min(NX,i+nbrptsx(j))
+        jmin=max(1,j-nbrptsy)
+        jmax=min(NY,j+nbrptsy)
         ! masque zone d'investigation pour chaque point de grille :
         invest(:,:)=.false.
-        invest(imin(i,j):imax(i,j),jmin(i,j):jmax(i,j))=.true.
+        invest(imin:imax,jmin:jmax)=.true.
         ! calcul du masque invest sur 3D:
 
         ! calcul des variables hors du where
@@ -240,6 +249,7 @@ contains
         do n=1,NBmois
           Aco(i,j,n)=minval(azWinddist(:,:,n), mask=((invest(:,:).eqv..true.).and.(mask3D(:,:,n).eq.0)))
         enddo
+        deallocate(azimuth, distpts, azwind, azWinddist)
       enddo
     enddo
     !$OMP END DO NOWAIT
